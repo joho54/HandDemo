@@ -18,11 +18,7 @@ function isFingerExtended(landmarks, finger) {
 }
 
 function isOnlyThumbExtended(landmarks) {
-    return isFingerExtended(landmarks, 'thumb') &&
-        !isFingerExtended(landmarks, 'index') &&
-        !isFingerExtended(landmarks, 'middle') &&
-        !isFingerExtended(landmarks, 'ring') &&
-        !isFingerExtended(landmarks, 'pinky');
+    return true;
 }
 
 function isAllFingersExtended(landmarks) {
@@ -39,10 +35,23 @@ function isVictory(landmarks) {
 }
 
 function isGiyeok(landmarks) {
-    // 기역: 엄지, 검지, 중지가 펴짐
+    // 기역: 엄지, 검지, 중지만 펴짐
     return (
-        landmarks[8].x < landmarks[6]. // index tip above pip
-        // && landmarks[4].x < landmarks[2].x // middle tip above pip
+        landmarks[8].y > landmarks[6].y &&
+        landmarks[4].x > landmarks[3].x 
+    )
+}
+function isNeun(landmarks) {
+    return (
+        landmarks[8].x > landmarks[6].x &&
+        landmarks[4].y < landmarks[2].y 
+    )
+}
+
+function isDegeud(landmarks) {
+    return (
+        landmarks[12].x > landmarks[10].x &&
+        landmarks[8].x > landmarks[6].x
     )
 }
 
@@ -58,7 +67,7 @@ const hands = new Hands({
     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
 });
 hands.setOptions({
-    maxNumHands: 1,
+    maxNumHands: 2,
     modelComplexity: 1,
     minDetectionConfidence: 0.7,
     minTrackingConfidence: 0.7
@@ -69,6 +78,7 @@ hands.onResults((results) => {
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
     canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        
         const landmarks = results.multiHandLandmarks[0];
         // 랜드마크 시각화: 각 점과 인덱스 번호 표시
         landmarks.forEach((landmark, i) => {
@@ -81,26 +91,38 @@ hands.onResults((results) => {
             canvasCtx.fillText(i, landmark.x * canvasElement.width + 6, landmark.y * canvasElement.height - 6);
         });
         // 각 손가락별 펴짐/접힘 상태 표시
-        const fingerStates = getAllFingersState(landmarks);
-        let fingerStateText = '';
-        for (const finger of FINGERS) {
-            fingerStateText += `${finger}: ${fingerStates[finger] ? '펴짐' : '접힘'}  `;
-        }
-        resultDiv.innerHTML = fingerStateText + '<br>';
+        // const fingerStates = getAllFingersState(landmarks);
+        // let fingerStateText = '';
+        // for (const finger of FINGERS) {
+        //     fingerStateText += `${finger}: ${fingerStates[finger] ? '펴짐' : '접힘'}  `;
+        // }
         // 기존 제스처 인식 흐름 유지
-        if (isOnlyThumbExtended(landmarks)) {
-            resultDiv.innerHTML += '👍 Thumbs Up!';
-        } else if (isAllFingersExtended(landmarks)) {
-            resultDiv.innerHTML += '🖐️ Open Hand!';
-        } else if (isVictory(landmarks)) {
-            resultDiv.innerHTML += '✌️ Victory!';
-        } else if (isGiyeok(landmarks)) {
-            resultDiv.innerHTML += '🖐️ 기역!';
-        } else {
-            resultDiv.innerHTML += 'Hand detected';
+        if (isGiyeok(landmarks)) {
+            resultDiv.textContent = '🖐️ 기역!';
         }
+        // else if (isOnlyThumbExtended(landmarks)) {
+        //     resultDiv.textContent = '👍 Thumbs Up!';
+        // }
+         else if (isAllFingersExtended(landmarks)) {
+            resultDiv.textContent = '🖐️ Open Hand!';
+        } else if (isVictory(landmarks)) {
+            resultDiv.textContent = '✌️ Victory!';
+        } else if (isGiyeok(landmarks)) {
+            resultDiv.textContent = '🖐️ 기역!';
+        } 
+        else if (isNeun(landmarks)) {
+            resultDiv.textContent = '🖐️ 니은!';
+        }
+        else if (isDegeud(landmarks)) {
+            resultDiv.textContent = '🖐️ 디귿!';
+        }
+        else {
+            resultDiv.textContent = 'Hand detected';
+        }
+        // resultDiv.textContent += 'checked';
+        console.log('hand detected');
     } else {
-        resultDiv.textContent = 'No hand';
+        resultDiv.textContent = 'No hand detected';
     }
     canvasCtx.restore();
 });
